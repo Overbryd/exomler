@@ -1,8 +1,11 @@
 -module(exomler_dom_encoder).
 
 %% API
--export([encode_document/1]).
--export([encode/1]).
+-export([
+    encode_document/1,
+    encode/1,
+    encode/2
+]).
 
 %% API
 encode_document({xml, Version, Encoding, RootEntity}) when
@@ -11,8 +14,11 @@ encode_document({xml, Version, Encoding, RootEntity}) when
     Root = tag(RootEntity),
     <<Prolog/binary, Root/binary>>.
 
-encode(Entity) when is_tuple(Entity)->
+encode(Entity) when is_tuple(Entity) ->
     tag(Entity).
+
+encode(Entity, Fun) when is_tuple(Entity) ->
+    tag(Entity, Fun).
 
 %% internal
 prolog(Version, Encoding) ->
@@ -26,16 +32,23 @@ version('1.1') -> <<"1.1">>.
 encoding(latin1) -> <<"ISO-8859-1">>;
 encoding(utf8) -> <<"UTF-8">>.
 
-tag({Tag, Attrs, nil}) ->
+tag(Entity) ->
+  Fun = fun(Any) -> Any end,
+  tag(Entity, Fun).
+
+tag({Tag, Attrs, nil}, _Fun) ->
     BinAttrs = tag_attrs(Attrs),
     Tag1 = bstring:trim_left(Tag),
     <<"<", Tag1/binary, BinAttrs/binary, "/>">>;
-tag({Tag, Attrs, Content}) ->
+tag({Tag, Attrs, Content}, Fun) ->
     BinAttrs = tag_attrs(Attrs),
-    BinContent = << <<(content(SubTag))/binary>> || SubTag <- Content>>,
+    BinContent = << <<(content(SubTag, Fun))/binary>> || SubTag <- Content>>,
     Tag1 = bstring:trim_left(Tag),
     <<"<", Tag1/binary, BinAttrs/binary, ">", BinContent/binary,
-        "</", Tag1/binary, ">">>.
+        "</", Tag1/binary, ">">>;
+
+tag(Any, Fun) ->
+  apply(Fun, Any).
 
 tag_attrs(Attrs) ->
     tag_attrs(Attrs, <<>>).
@@ -47,10 +60,12 @@ tag_attrs([{Key, Value}|Tail], EncodedAttrs) ->
 tag_attrs([], EncodedAttrs) ->
     EncodedAttrs.
 
-content(Tuple) when is_tuple(Tuple) ->
-    tag(Tuple);
-content(Binary) when is_binary(Binary) ->
-    escape(Binary).
+content(Tuple, Fun) when is_tuple(Tuple) ->
+    tag(Tuple, Fun);
+content(Binary, _Fun) when is_binary(Binary) ->
+    escape(Binary);
+content(Any, Fun) ->
+    apply(Fun, Any).
 
 escape(Bin) -> escape(Bin, <<>>).
 

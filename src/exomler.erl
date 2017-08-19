@@ -2,7 +2,7 @@
 
 %% API
 -export([decode/1, decode_document/1]).
--export([encode/1, encode_document/1]).
+-export([encode/1, encode/2, encode_document/1]).
 
 %% API
 decode_document(Bin) ->
@@ -16,3 +16,6 @@ encode_document(Entity) ->
 
 encode(Entity) ->
     exomler_dom_encoder:encode(Entity).
+
+encode(Entity, Fun) ->
+    exomler_dom_encoder:encode(Entity, Fun).
