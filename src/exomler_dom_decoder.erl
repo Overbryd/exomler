@@ -32,7 +32,7 @@ get_version(Attrs) ->
     end.
 
 get_encoding(Attrs) ->
-    Encoding = get_value(<<"encoding">>, Attrs), 
+    Encoding = get_value(<<"encoding">>, Attrs),
     case bstring:to_lower(Encoding) of
         <<"iso-8859-1">>    -> latin1;
         <<"iso_8859_1">>    -> latin1;
@@ -65,11 +65,11 @@ skip_doctype(Bin) ->
 
 tag(<<"<", Bin/binary>>) ->
     {TagHeader1, Rest1} = bstring:split(Bin, <<">">>),
-    Len = size(TagHeader1)-1, 
+    Len = size(TagHeader1)-1,
     case TagHeader1 of
         <<TagHeader:Len/binary, "/">> ->
             {Tag, Attrs} = tag_header(TagHeader),
-            {{Tag, Attrs,[]}, Rest1};
+            {{Tag, Attrs, nil}, Rest1};
         TagHeader ->
             {Tag, Attrs} = tag_header(TagHeader),
             {Content, Rest2} = tag_content(Rest1, Tag),
@@ -157,9 +157,9 @@ decode_tag_test_() ->
         decode(<<"<html ></html>\n">>)),
     ?_assertEqual({<<"html">>, [], []},
         decode(<<"<html ></html >\n">>)),
-    ?_assertEqual({<<"html">>, [], []}, 
+    ?_assertEqual({<<"html">>, [], nil},
         decode(<<"<html/>\n">>)),
-    ?_assertEqual({<<"html">>, [], []}, 
+    ?_assertEqual({<<"html">>, [], nil},
         decode(<<"\n<html />\n">>))
     ].
 
@@ -181,21 +181,21 @@ decode_content_test_() ->
         decode(<<"<html><p>TextBefore<!-- Comment -->TextAfter</p></html>\n">>))
     ].
 
-decode_attributes_test_() -> 
+decode_attributes_test_() ->
     [
-    ?_assertEqual({<<"html">>, [{<<"xmlns">>,<<"w3c">>}], []}, 
-        decode(<<"<html xmlns=\"w3c\"></html>\n">>)),
-    ?_assertEqual({<<"html">>, [{<<"xmlns">>,<<"w3c">>}], []}, 
-        decode(<<"<html xmlns=\"w3c\" ></html>\n">>)),
     ?_assertEqual({<<"html">>, [{<<"xmlns">>,<<"w3c">>}], []},
+        decode(<<"<html xmlns=\"w3c\"></html>\n">>)),
+    ?_assertEqual({<<"html">>, [{<<"xmlns">>,<<"w3c">>}], []},
+        decode(<<"<html xmlns=\"w3c\" ></html>\n">>)),
+    ?_assertEqual({<<"html">>, [{<<"xmlns">>,<<"w3c">>}], nil},
         decode(<<"<html xmlns='w3c' />\n">>)),
-    ?_assertEqual({<<"html">>, [{<<"k">>,<<"v">>}], []}, 
+    ?_assertEqual({<<"html">>, [{<<"k">>,<<"v">>}], nil},
         decode(<<"<html k=\"v\"/>\n">>)),
-    ?_assertEqual({<<"html">>, [{<<"k">>,<<"v">>}], []}, 
+    ?_assertEqual({<<"html">>, [{<<"k">>,<<"v">>}], nil},
         decode(<<"<html k=\"v\" />\n">>)),
-    ?_assertEqual({<<"html">>, [{<<"k">>,<<"v">>}], []}, 
+    ?_assertEqual({<<"html">>, [{<<"k">>,<<"v">>}], nil},
         decode(<<"<html k  =  \"v\" />\n">>)),
-    ?_assertEqual({<<"html">>, [{<<"k">>,<<" 0 < 1 ">>}], []},
+    ?_assertEqual({<<"html">>, [{<<"k">>,<<" 0 < 1 ">>}], nil},
         decode(<<"<html k  =  \" 0 &lt; 1 \" />\n">>))
   ].
 

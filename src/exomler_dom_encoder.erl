@@ -5,7 +5,7 @@
 -export([encode/1]).
 
 %% API
-encode_document({xml, Version, Encoding, RootEntity}) when 
+encode_document({xml, Version, Encoding, RootEntity}) when
         is_atom(Version), is_atom(Encoding), is_tuple(RootEntity) ->
     Prolog = prolog(version(Version), encoding(Encoding)),
     Root = tag(RootEntity),
@@ -26,11 +26,15 @@ version('1.1') -> <<"1.1">>.
 encoding(latin1) -> <<"ISO-8859-1">>;
 encoding(utf8) -> <<"UTF-8">>.
 
+tag({Tag, Attrs, nil}) ->
+    BinAttrs = tag_attrs(Attrs),
+    Tag1 = bstring:trim_left(Tag),
+    <<"<", Tag1/binary, BinAttrs/binary, "/>">>;
 tag({Tag, Attrs, Content}) ->
     BinAttrs = tag_attrs(Attrs),
     BinContent = << <<(content(SubTag))/binary>> || SubTag <- Content>>,
     Tag1 = bstring:trim_left(Tag),
-    <<"<", Tag1/binary, BinAttrs/binary, ">", BinContent/binary, 
+    <<"<", Tag1/binary, BinAttrs/binary, ">", BinContent/binary,
         "</", Tag1/binary, ">">>.
 
 tag_attrs(Attrs) ->
@@ -38,7 +42,7 @@ tag_attrs(Attrs) ->
 
 tag_attrs([{Key, Value}|Tail], EncodedAttrs) ->
     EscapedValue = escape(Value),
-    EncodedAttr = <<" ", Key/binary, "=\"", EscapedValue/binary, "\"">>, 
+    EncodedAttr = <<" ", Key/binary, "=\"", EscapedValue/binary, "\"">>,
     tag_attrs(Tail, <<EncodedAttrs/binary, EncodedAttr/binary>>);
 tag_attrs([], EncodedAttrs) ->
     EncodedAttrs.
@@ -73,29 +77,31 @@ escape(<<>>, Escaped) ->
 
 encode_document_test_() ->
     [
-    ?_assertEqual(<<"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<html></html>">>, 
+    ?_assertEqual(<<"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<html></html>">>,
         encode_document({xml, '1.0', utf8, {<<"html">>, [], []}}))
     ].
 
 encode_tag_test_() ->
     [
-    ?_assertEqual(<<"<html></html>">>, 
-        encode({<<"html">>, [], []}))
+    ?_assertEqual(<<"<html></html>">>,
+        encode({<<"html">>, [], []})),
+    ?_assertEqual(<<"<html/>">>,
+        encode({<<"html">>, [], nil}))
     ].
 
 encode_content_test_() ->
     [
-    ?_assertEqual(<<"<html>Body</html>">>, 
+    ?_assertEqual(<<"<html>Body</html>">>,
         encode({<<"html">>, [], [<<"Body">>]})),
-    ?_assertEqual(<<"<html>TextBefore<head>Body</head>TextAfter</html>">>, 
+    ?_assertEqual(<<"<html>TextBefore<head>Body</head>TextAfter</html>">>,
         encode({<<"html">>, [], [<<"TextBefore">>, {<<"head">>, [], [<<"Body">>]}, <<"TextAfter">>]}))
     ].
 
-encode_attributes_test_() -> 
+encode_attributes_test_() ->
     [
-    ?_assertEqual(<<"<html xmlns=\"w3c\"></html>">>, 
+    ?_assertEqual(<<"<html xmlns=\"w3c\"></html>">>,
         encode({<<"html">>, [{<<"xmlns">>,<<"w3c">>}], []})),
-    ?_assertEqual(<<"<foo bar=\"&amp;&lt;&gt;\"></foo>">>, 
+    ?_assertEqual(<<"<foo bar=\"&amp;&lt;&gt;\"></foo>">>,
         encode({<<"foo">>, [{<<"bar">>,<<"&<>">>}], []}))
     ].
 
